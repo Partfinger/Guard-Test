@@ -15,7 +15,7 @@ public class Seeker : State
     protected NavMeshHit hit;
 
     delegate void Finder();
-    [SerializeField]
+
     Finder currentFinder;
 
     void FindTarget()
@@ -27,7 +27,7 @@ public class Seeker : State
         {
             if (!NavMesh.Raycast(position, targetsInRadius[i].transform.position, out hit, NavMesh.AllAreas))
             {
-                guardian.Target = targetsInRadius[i].transform;
+                guardian.Target = targetsInRadius[i].transform.parent;
                 currentFinder = TraceTarget;
                 guardian.SetState(StateID.persecute);
                 break; // преследуем только первого видимого врага в списке.
@@ -40,12 +40,12 @@ public class Seeker : State
         if (NavMesh.Raycast(transform.position, guardian.Target.transform.position, out hit, NavMesh.AllAreas))
         {
             guardian.Target = null;
-            guardian.SetState(StateID.persecute);
+            guardian.SetState(StateID.checkUp);
             currentFinder = FindTarget;
         }
         else
         {
-
+            guardian.UpdateMemory();
         }
     }
 
@@ -70,8 +70,8 @@ public class Seeker : State
 
     public override void Enter()
     {
-        StartCoroutine(FindTargets());
         currentFinder = FindTarget;
+        StartCoroutine(FindTargets());
     }
 
     public override void Exit()

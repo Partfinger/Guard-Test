@@ -3,37 +3,25 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public delegate void GuardianUpdater(StateID id);
-public enum StateID { patrol = 1, persecute };
+public enum StateID { patrol = 1, persecute, checkUp };
 
 public class Guardian : MonoBehaviour
 {
     public State[] states;
-    [SerializeField]
     StateID current = StateID.patrol;
+    State currentState;
 
-    [SerializeField]
-    Transform target;
+    public Material material;
+    public Color[] stateColor =
+    {
+        Color.green,
+        Color.yellow,
+        Color.red
+    };
+
     public Vector3 memory;
 
-    public Transform Target
-    {
-        get
-        {
-            return target;
-        }
-        set
-        {
-            if (value)
-            {
-                target = value;
-                memory = target.transform.position;
-            }
-            else
-            {
-                memory = target.position;
-            }
-        }
-    }
+    public Transform Target;
 
     private void Start()
     {
@@ -41,8 +29,10 @@ public class Guardian : MonoBehaviour
         {
             states[i].guardian = this;
         }
+        currentState = states[1];
+        currentState.Enter();
         states[0].Enter();
-        states[(byte)current].Enter();
+        material.color = stateColor[0];
     }
 
     /// <summary>
@@ -53,18 +43,57 @@ public class Guardian : MonoBehaviour
     {
         if (newState == current)
             return;
-        states[(byte)current].Exit();
         current = newState;
-        states[(byte)current].Enter();
+        currentState.Exit();
+        switch(current)
+        {
+            case StateID.patrol:
+                currentState = states[1];
+                material.color = stateColor[0];
+                break;
+            case StateID.persecute:
+                currentState = states[2];
+                material.color = stateColor[2];
+                break;
+            case StateID.checkUp:
+                currentState = states[2];
+                material.color = stateColor[1];
+                break;
+        }
+        currentState.Enter();
     }
 
     public bool PointReached()
     {
-        if (!((transform.position - target.position).sqrMagnitude < 0.25f))
+        if (Target)
+        {
+            if (!((transform.position - Target.position).sqrMagnitude < 1f))
+            {
+                SetState(StateID.patrol);
+                return false;
+            }
+            else
+            {
+                Target.GetComponentInParent<Player>().Stop();
+                return true;
+            }
+        }
+        else
         {
             SetState(StateID.patrol);
             return false;
         }
-        return true;
+    }
+
+    public void UpdateMemory()
+    {
+        memory = Target.position;
+    }
+
+    public void Stop()
+    {
+        enabled = false;
+        states[0].Exit();
+        currentState.Exit();
     }
 }
